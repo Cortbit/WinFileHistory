@@ -75,7 +75,7 @@ namespace WinFileHistory
                 }
                 else if (cmd == ClsTaskRuning.SC_CMD_SYNC_WORK_COMPLETED)
                 {
-                    this.Invoke((Action)delegate { lblLastRunTime.Text = "备份结束"; refrshList(false); });
+                    this.Invoke((Action)delegate { cfg.Target.RefreshCatelog(); lblLastRunTime.Text = "备份结束"; refrshList(false); });
                 }
             };
             tc.OnConnect += (ciso, cosi) => { this.Invoke((Action)delegate { btnRunBackupOnce.ForeColor = Color.DarkBlue; }); };
@@ -347,7 +347,7 @@ namespace WinFileHistory
             }
             else
             {
-
+                //| TODO: 未完成...
             }
         }
 
