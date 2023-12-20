@@ -19,7 +19,7 @@ namespace WinFileHistory
             m_break = false;
 
             IList<DiffFlag> _fileDiffs = new List<DiffFlag>();
-            var sourceFiles = Directory.GetFiles(sourcePath, "*.*", SearchOption.AllDirectories).Select(n=>n.Replace("\\","//")).ToArray();
+            var sourceFiles = Directory.GetFiles(sourcePath, "*.*", SearchOption.AllDirectories).Select(n=>n.Replace("\\","/")).ToArray();
             var targetFiles = group.Keys.ToArray(); //| keys -> relativePath
             foreach (var sourceFile in sourceFiles)
             {
@@ -40,8 +40,10 @@ namespace WinFileHistory
                         Change = EnChangeType.Added,
                     };
                     group.Add(relativePath, _diff);
-                    _fileDiffs.Add(_diff);
-                    CopyFile(sourceFile, getNewFile(targetPath, relativePath, sourceFileInfo.LastWriteTimeUtc));
+                    if (CopyFile(sourceFile, getNewFile(targetPath, relativePath, sourceFileInfo.LastWriteTimeUtc)))
+                    {
+                        _fileDiffs.Add(_diff);
+                    }
                     System.Threading.Thread.Sleep(10);
                 }
                 else
@@ -49,8 +51,10 @@ namespace WinFileHistory
                     DiffFlag _diff = this.CheckDiff(group, sourceFileInfo);
                     if (_diff != null && _diff.Change == EnChangeType.Modified)
                     {
-                        _fileDiffs.Add(_diff);
-                        CopyFile(sourceFile, getNewFile(targetPath, relativePath, sourceFileInfo.LastWriteTimeUtc));
+                        if (CopyFile(sourceFile, getNewFile(targetPath, relativePath, sourceFileInfo.LastWriteTimeUtc)))
+                        {
+                            _fileDiffs.Add(_diff);
+                        }
                         System.Threading.Thread.Sleep(10);
                     }
                 }
@@ -106,7 +110,7 @@ namespace WinFileHistory
             {
                 System.IO.Directory.CreateDirectory(_foler);
             }    
-            return _foler + _tagFile;
+            return _foler + "/"+ _tagFile;
 
         }
         private bool CopyFile(string source, string target)
