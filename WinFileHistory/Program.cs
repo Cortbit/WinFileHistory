@@ -10,6 +10,7 @@ namespace WinFileHistory
     {
         public const string scr_svr = "-svr"; // Service
         public const string scr_log = "-log"; // Service write log
+        public const string scr_view = "-view"; // History View
 
         private static string[] m_startArgs;
         /// <summary>
@@ -42,7 +43,14 @@ namespace WinFileHistory
             {
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
-                Application.Run(new FrmConfig());
+                if (m_startArgs != null && m_startArgs.Contains(scr_view))
+                {
+                    Application.Run(new FrmViews());
+                }
+                else
+                {
+                    Application.Run(new FrmConfig());
+                }
             }
         }
     }

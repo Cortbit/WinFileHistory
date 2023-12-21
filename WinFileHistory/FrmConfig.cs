@@ -139,10 +139,10 @@ namespace WinFileHistory
                 //lblHistorySize.Text = cfg.Target.GetTotalSize().ToGB(2);
                 cfg.Target.GetTotalSizeAsync(n => this.Invoke((Action)delegate { lblHistorySize.Text = n.ToGB(2); }));
                 
-                DateTime? _lastDoneTime = cfg.Target.GetCatelog().lastDoneTime;
+                DateTime? _lastDoneTime = cfg.Target.GetCatelog().lastDoneUtcTime;
                 if (_lastDoneTime != null)
                 {
-                    lblLastRunTime.Text = _lastDoneTime.Value.ToString("yyyy-MM-dd HH:mm");
+                    lblLastRunTime.Text = _lastDoneTime.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
                 }
                 else
                 {
@@ -341,13 +341,25 @@ namespace WinFileHistory
 
         private void lbtnRunClean_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            if (tc.IsConnected)
+            FrmClean frm = new FrmClean();
+            frm.Icon = this.Icon;
+            if (frm.ShowDialog() == DialogResult.OK)
             {
-                tc.SendManualClean();
-            }
-            else
-            {
-                //| TODO: 未完成...
+                if (tc.IsConnected)
+                {
+                    tc.SendManualClean();
+                }
+                else
+                {
+                    lblLastRunTime.Text = "手动清理...";
+                    System.Threading.ThreadPool.QueueUserWorkItem(delegate
+                    {
+                        using (ClsTaskRuning rr = new ClsTaskRuning())
+                        {
+                            rr.manualClean(frm.ExpireMonths);
+                        }
+                    });
+                }
             }
         }
 
@@ -376,12 +388,13 @@ namespace WinFileHistory
                                 BackupResult result = (BackupResult)args;
                                 writeLog("files: " + result.diffs.Count + " times: " + _dtm.TotalSeconds + " s");
                             }
+                            this.refrshList(false);
                         };
-                        rr.manualStart();
+
+                        this.Invoke((Action)delegate { rr.manualStart(); });
                     }
                 });
             }
-            this.refrshList(false);
         }
 
 
@@ -480,6 +493,22 @@ namespace WinFileHistory
             else
             {
                 writeLog("客户端未打开...");
+            }
+        }
+
+        private void cmnuFileMenuReg_Click(object sender, EventArgs e)
+        {
+            if (IMKCode.ServiceHelper.AddFileMenu("文件历史版本", Program.scr_view))
+            {
+                writeLog("添加文件菜单");
+            }
+        }
+
+        private void cmnuFileMenuUnReg_Click(object sender, EventArgs e)
+        {
+            if (IMKCode.ServiceHelper.RemoveFileMenu())
+            {
+                writeLog("移除文件菜单");
             }
         }
 

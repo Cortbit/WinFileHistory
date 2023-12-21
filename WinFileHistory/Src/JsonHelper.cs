@@ -84,4 +84,39 @@ public static class JsonHelper
         }
     }
 
+    public static void SaveJDB(this object obj, string file)
+    {
+        if (obj == null) { return; }
+        using (FileStream fs = new FileStream(file, FileMode.Create))
+        {
+            using (System.IO.Compression.GZipStream sw = new System.IO.Compression.GZipStream(fs, System.IO.Compression.CompressionMode.Compress))
+            {
+                string _json = obj.ToJson();
+                byte[] _buf = System.Text.Encoding.UTF8.GetBytes(_json);
+                sw.Write(_buf, 0, _buf.Length);
+                _buf = null;
+                sw.Close();
+            }
+            fs.Close();
+        }
+    }
+
+    public static T ReadJDB<T>(this string file)
+    {
+        using (FileStream fs = new FileStream(file, FileMode.Open))
+        {
+            using (System.IO.Compression.GZipStream sr = new System.IO.Compression.GZipStream(fs, System.IO.Compression.CompressionMode.Decompress))
+            {
+                using (System.IO.MemoryStream ms = new MemoryStream())
+                {
+                    int _size = 2048;
+                    byte[] buf = new byte[_size];
+                    do{_size = sr.Read(buf, 0, buf.Length); ms.Write(buf, 0, _size); } while (_size > 0);
+                    return System.Text.Encoding.UTF8.GetString(ms.ToArray()).ToObject<T>();
+                }
+            }
+        }
+    }
+
+
 }

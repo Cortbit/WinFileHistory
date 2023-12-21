@@ -46,5 +46,17 @@ namespace WinFileHistory
                 this.SelectDrive = (System.IO.DriveInfo)lstDrives.SelectedItems[0].Tag;
             }
         }
+
+        private void lbtnAddNetworkPath_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            FolderBrowserDialog diag = new FolderBrowserDialog();
+            //diag.RootFolder = Environment.SpecialFolder.;
+            if (diag.ShowDialog() == DialogResult.OK)
+            {
+                string sharePath = diag.SelectedPath;
+                string cmd = "Get-SmbShare -Name " + sharePath;
+                //MessageBox.Show(di.Name);
+            }
+        }
     }
 }

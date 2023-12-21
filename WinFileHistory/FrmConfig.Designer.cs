@@ -74,11 +74,14 @@ namespace WinFileHistory
             this.toolStripMenuItem2 = new System.Windows.Forms.ToolStripSeparator();
             this.cmnuServiceInstall = new System.Windows.Forms.ToolStripMenuItem();
             this.cmnuServiceUninstall = new System.Windows.Forms.ToolStripMenuItem();
-            this.tmrSecond = new System.Windows.Forms.Timer(this.components);
             this.splSource = new System.Windows.Forms.Splitter();
             this.splExclude = new System.Windows.Forms.Splitter();
             this.splFileTypes = new System.Windows.Forms.Splitter();
             this.splTarget = new System.Windows.Forms.Splitter();
+            this.cmnuFileMenu = new System.Windows.Forms.ToolStripMenuItem();
+            this.cmnuFileMenuReg = new System.Windows.Forms.ToolStripMenuItem();
+            this.cmnuFileMenuUnReg = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripMenuItem3 = new System.Windows.Forms.ToolStripSeparator();
             this.grpSource.SuspendLayout();
             this.grpExclude.SuspendLayout();
             this.grpFileType.SuspendLayout();
@@ -523,6 +526,8 @@ namespace WinFileHistory
             // cmnuService
             // 
             this.cmnuService.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.cmnuFileMenu,
+            this.toolStripMenuItem3,
             this.cmnuServicStart,
             this.cmnuServicStop,
             this.toolStripMenuItem1,
@@ -531,56 +536,53 @@ namespace WinFileHistory
             this.cmnuServiceInstall,
             this.cmnuServiceUninstall});
             this.cmnuService.Name = "cmnuService";
-            this.cmnuService.Size = new System.Drawing.Size(140, 126);
+            this.cmnuService.RenderMode = System.Windows.Forms.ToolStripRenderMode.System;
+            this.cmnuService.Size = new System.Drawing.Size(181, 176);
             // 
             // cmnuServicStart
             // 
             this.cmnuServicStart.Name = "cmnuServicStart";
-            this.cmnuServicStart.Size = new System.Drawing.Size(139, 22);
+            this.cmnuServicStart.Size = new System.Drawing.Size(180, 22);
             this.cmnuServicStart.Text = "启动服务(&S)";
             this.cmnuServicStart.Click += new System.EventHandler(this.cmnuServicStart_Click);
             // 
             // cmnuServicStop
             // 
             this.cmnuServicStop.Name = "cmnuServicStop";
-            this.cmnuServicStop.Size = new System.Drawing.Size(139, 22);
+            this.cmnuServicStop.Size = new System.Drawing.Size(180, 22);
             this.cmnuServicStop.Text = "停止服务(&E)";
             this.cmnuServicStop.Click += new System.EventHandler(this.cmnuServicStop_Click);
             // 
             // toolStripMenuItem1
             // 
             this.toolStripMenuItem1.Name = "toolStripMenuItem1";
-            this.toolStripMenuItem1.Size = new System.Drawing.Size(136, 6);
+            this.toolStripMenuItem1.Size = new System.Drawing.Size(177, 6);
             // 
             // cmnuServiceCommTest
             // 
             this.cmnuServiceCommTest.Name = "cmnuServiceCommTest";
-            this.cmnuServiceCommTest.Size = new System.Drawing.Size(139, 22);
+            this.cmnuServiceCommTest.Size = new System.Drawing.Size(180, 22);
             this.cmnuServiceCommTest.Text = "通信测试(&T)";
             this.cmnuServiceCommTest.Click += new System.EventHandler(this.cmnuServiceCommTest_Click);
             // 
             // toolStripMenuItem2
             // 
             this.toolStripMenuItem2.Name = "toolStripMenuItem2";
-            this.toolStripMenuItem2.Size = new System.Drawing.Size(136, 6);
+            this.toolStripMenuItem2.Size = new System.Drawing.Size(177, 6);
             // 
             // cmnuServiceInstall
             // 
             this.cmnuServiceInstall.Name = "cmnuServiceInstall";
-            this.cmnuServiceInstall.Size = new System.Drawing.Size(139, 22);
+            this.cmnuServiceInstall.Size = new System.Drawing.Size(180, 22);
             this.cmnuServiceInstall.Text = "安装服务";
             this.cmnuServiceInstall.Click += new System.EventHandler(this.cmnuServiceInstall_Click);
             // 
             // cmnuServiceUninstall
             // 
             this.cmnuServiceUninstall.Name = "cmnuServiceUninstall";
-            this.cmnuServiceUninstall.Size = new System.Drawing.Size(139, 22);
+            this.cmnuServiceUninstall.Size = new System.Drawing.Size(180, 22);
             this.cmnuServiceUninstall.Text = "卸载服务";
             this.cmnuServiceUninstall.Click += new System.EventHandler(this.cmnuServiceUninstall_Click);
-            // 
-            // tmrSecond
-            // 
-            this.tmrSecond.Interval = 1000;
             // 
             // splSource
             // 
@@ -617,6 +619,34 @@ namespace WinFileHistory
             this.splTarget.TabIndex = 6;
             this.splTarget.TabStop = false;
             this.splTarget.SplitterMoved += new System.Windows.Forms.SplitterEventHandler(this.OnSplitterMoved);
+            // 
+            // cmnuFileMenu
+            // 
+            this.cmnuFileMenu.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.cmnuFileMenuReg,
+            this.cmnuFileMenuUnReg});
+            this.cmnuFileMenu.Name = "cmnuFileMenu";
+            this.cmnuFileMenu.Size = new System.Drawing.Size(180, 22);
+            this.cmnuFileMenu.Text = "文件菜单";
+            // 
+            // cmnuFileMenuReg
+            // 
+            this.cmnuFileMenuReg.Name = "cmnuFileMenuReg";
+            this.cmnuFileMenuReg.Size = new System.Drawing.Size(180, 22);
+            this.cmnuFileMenuReg.Text = "注册";
+            this.cmnuFileMenuReg.Click += new System.EventHandler(this.cmnuFileMenuReg_Click);
+            // 
+            // cmnuFileMenuUnReg
+            // 
+            this.cmnuFileMenuUnReg.Name = "cmnuFileMenuUnReg";
+            this.cmnuFileMenuUnReg.Size = new System.Drawing.Size(180, 22);
+            this.cmnuFileMenuUnReg.Text = "移除";
+            this.cmnuFileMenuUnReg.Click += new System.EventHandler(this.cmnuFileMenuUnReg_Click);
+            // 
+            // toolStripMenuItem3
+            // 
+            this.toolStripMenuItem3.Name = "toolStripMenuItem3";
+            this.toolStripMenuItem3.Size = new System.Drawing.Size(177, 6);
             // 
             // FrmConfig
             // 
@@ -697,7 +727,6 @@ namespace WinFileHistory
         private System.Windows.Forms.ToolStripMenuItem cmnuServicStop;
         private System.Windows.Forms.ToolStripSeparator toolStripMenuItem1;
         private System.Windows.Forms.ToolStripSeparator toolStripMenuItem2;
-        private System.Windows.Forms.Timer tmrSecond;
         private System.Windows.Forms.ToolStripMenuItem cmnuServiceCommTest;
         private System.Windows.Forms.Panel pelFileTypesBtns;
         private System.Windows.Forms.LinkLabel lbtnRunClean;
@@ -705,6 +734,10 @@ namespace WinFileHistory
         private System.Windows.Forms.Splitter splExclude;
         private System.Windows.Forms.Splitter splFileTypes;
         private System.Windows.Forms.Splitter splTarget;
+        private System.Windows.Forms.ToolStripMenuItem cmnuFileMenu;
+        private System.Windows.Forms.ToolStripMenuItem cmnuFileMenuReg;
+        private System.Windows.Forms.ToolStripMenuItem cmnuFileMenuUnReg;
+        private System.Windows.Forms.ToolStripSeparator toolStripMenuItem3;
     }
 }
 

@@ -82,6 +82,7 @@ namespace WinFileHistory
             this.lbtnAddNetworkPath.TabIndex = 1;
             this.lbtnAddNetworkPath.TabStop = true;
             this.lbtnAddNetworkPath.Text = "添加网络位置";
+            this.lbtnAddNetworkPath.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.lbtnAddNetworkPath_LinkClicked);
             // 
             // btnOK
             // 
@@ -118,6 +119,7 @@ namespace WinFileHistory
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "FrmDrives";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "选择驱动器";
             this.Load += new System.EventHandler(this.FrmDrives_Load);
             this.ResumeLayout(false);

@@ -29,10 +29,10 @@ namespace WinFileHistory
 
                 var relativePath = GetFilePathRelativeTo(sourceFile, sourcePath);
                 var sourceFileInfo = new FileInfo(sourceFile);
-
-                if (!group.ContainsKey(relativePath))
+                DiffFlag _diff;
+                if (!group.TryGetValue(relativePath, out _diff))
                 {
-                    DiffFlag _diff = new DiffFlag
+                    _diff = new DiffFlag
                     {
                         relativePath = relativePath,
                         length = sourceFileInfo.Length,
@@ -44,29 +44,25 @@ namespace WinFileHistory
                     {
                         _fileDiffs.Add(_diff);
                     }
-                    System.Threading.Thread.Sleep(10);
+                    //System.Threading.Thread.Sleep(10);
                 }
-                else
+                else if (IsDiff(_diff, sourceFileInfo))
                 {
-                    DiffFlag _diff = this.CheckDiff(group, sourceFileInfo);
-                    if (_diff != null && _diff.Change == EnChangeType.Modified)
+                    if (_diff.relativePath == null) { _diff.relativePath = relativePath; }
+                    if (CopyFile(sourceFile, getNewFile(targetPath, relativePath, sourceFileInfo.LastWriteTimeUtc)))
                     {
-                        if (CopyFile(sourceFile, getNewFile(targetPath, relativePath, sourceFileInfo.LastWriteTimeUtc)))
-                        {
-                            _fileDiffs.Add(_diff);
-                        }
-                        System.Threading.Thread.Sleep(10);
+                        _fileDiffs.Add(_diff);
                     }
+                    //System.Threading.Thread.Sleep(10);
                 }
             }
 
             foreach (var relativePath in targetFiles)
             {
-                //var sourceFile = Path.Combine(sourcePath, relativePath); "E:/www","/index.html" => "/index.html"
-                var sourceFile = sourcePath + relativePath;
-
+                var sourceFile = Path.Combine(sourcePath, relativePath); //"E:/www","/index.html" => "/index.html"
                 if (!File.Exists(sourceFile))
                 {
+                    //Console.WriteLine("REMOVE:"+ sourceFile);
                     group.Remove(relativePath); //| delete item in group @ catelog
                 }
             }
@@ -79,28 +75,26 @@ namespace WinFileHistory
             return ClsExts.GetRelativePath(basePath, path, true);
         }
 
-        public DiffFlag CheckDiff(Dictionary<string, DiffFlag> group, System.IO.FileInfo fiSource)
+        public bool IsDiff(DiffFlag diff, System.IO.FileInfo fiSource)
         {
-            DiffFlag fd;
-            if (group.TryGetValue(fiSource.FullName, out fd))
+            //| 636951426706140000 : 636951426706141703
+            if (diff.length != fiSource.Length || (diff.modifyTime.Ticks /10000) != (fiSource.LastWriteTimeUtc.Ticks /10000))
+            //if (diff.length != fiSource.Length || diff.modifyTime.ToString("yyyyMMddHHmmssfff") != fiSource.LastWriteTimeUtc.ToString("yyyyMMddHHmmssfff"))
             {
-                if (fd.length != fiSource.Length || fd.modifyTime != fiSource.LastWriteTimeUtc)
-                {
-                    fd.Change = EnChangeType.Modified;
-                    fd.length = fiSource.Length;
-                    fd.modifyTime = fiSource.LastWriteTimeUtc;
-                }
-                else
-                {
-                    fd.Change = EnChangeType.None;
-                }
+                diff.Change = EnChangeType.Modified;
+                diff.length = fiSource.Length;
+                diff.modifyTime = fiSource.LastWriteTimeUtc;
+                return true;
             }
-            return fd;
+            else
+            {
+                return false;
+            }
         }
 
         private string getNewFile(string targetPath, string relativePath, DateTime? dtmUtc)
         {
-            string _foler = targetPath + Path.GetDirectoryName(relativePath);
+            string _foler = System.IO.Path.Combine(targetPath, Path.GetDirectoryName(relativePath));
             string _tagFile = string.Concat(
                 Path.GetFileNameWithoutExtension(relativePath),
                 (dtmUtc ?? DateTime.UtcNow).ToString(" (yyyy_MM_dd HH_mm_ss UTC)"),
@@ -117,10 +111,11 @@ namespace WinFileHistory
         {
             try
             {
-                if (!System.IO.File.Exists(target)){ System.IO.File.Copy(source, target); }
+                if (!System.IO.File.Exists(target)){ System.IO.File.Copy(source, target); System.Threading.Thread.Sleep(10); }
                 return true;
             }
             catch (Exception err){ Console.WriteLine(err.Message); return false; }
         }
+
     }
 }

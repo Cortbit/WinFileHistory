@@ -24,11 +24,16 @@ namespace WinFileHistory
         /// <summary>
         /// 排除的文件夹或名称
         /// </summary>
-        public List<string> FolderExclude = new List<string>() { "/node_modules/", "/.android/avd/", ".gradle/caches/", "/AppData/Local/", "/AppData/Roaming/" };
+        public List<string> FolderExclude = new List<string>() { "/node_modules/", "/.android/avd/", "/.gradle/caches/", "/AppData/Local/", "/AppData/Roaming/" };
         /// <summary>
         /// 文件类型过滤器
         /// </summary>
         public FileTypeConfig FileType = new FileTypeConfig();
+
+        /// <summary>
+        /// 目标驱动器
+        /// </summary>
+        public TargetConfig Target;
 
         public int TargetAbsenceTime = 5;
         public int TimeInUnprotectedState = 3;
@@ -44,10 +49,6 @@ namespace WinFileHistory
         /// 保留月数(-1:永远，且不删除), (0:直到空间不足)
         /// </summary>
         public EnFileKeepTimes Retention = EnFileKeepTimes.Never;
-        /// <summary>
-        /// 目标驱动器
-        /// </summary>
-        public TargetConfig Target;
 
 
         public void SetTarget(TargetConfig _target)
@@ -70,11 +71,51 @@ namespace WinFileHistory
             }
         }
 
+        private int  _vtick = 0;
+        private bool _sbusy = false;
+        /// <summary>
+        /// IMK: 使用异步保存, 可能延迟 3 秒
+        /// </summary>
+        protected void asyncToSave()
+        {
+            System.Threading.Interlocked.Increment(ref _vtick);
+            if (!_sbusy)
+            {
+                _sbusy = true;
+                System.Threading.ThreadPool.QueueUserWorkItem(delegate
+                {
+                    try
+                    {
+                    save_new:
+                        int _loc_ver = _vtick;
+                        string jstr = JsonHelper.ToJson(this);
+                        jstr = jstr
+                            .Replace("\",\"", "\",\r\n\"")
+                            .Replace("\":[", "\":[\r\n")
+                            .Replace("],\"", "],\r\n\"")
+                            .Replace("},{\"", "},\r\n{\"");
+                        System.IO.File.WriteAllText(file, jstr);
+
+                        if (Target != null)
+                        {
+                            if (System.IO.Directory.Exists(Target.GetConfigPath()))
+                            {
+                                try { System.IO.File.Copy(file, System.IO.Path.Combine(Target.GetConfigPath(), "config.json"), true); } catch { }
+                            }
+                        }
+
+                        System.Threading.Thread.Sleep(3000); //| check new ver
+                        if (_loc_ver != _vtick) { goto save_new; }
+                    }
+                    finally { _sbusy = false; }
+                });
+            }
+        }
+
+
         public void save()
         {
-            string jstr = JsonHelper.ToJson(this);
-            jstr = jstr.Replace("],\"", "],\r\n\"").Replace("},{\"", "},\r\n{\"");
-            System.IO.File.WriteAllText(file, jstr);
+            asyncToSave();
         }
 
 
@@ -142,11 +183,11 @@ namespace WinFileHistory
         /// <summary>
         /// 筛选法，文件类型
         /// </summary>
-        public List<string> ChoosedTypes = new List<string>() { ".aspx", ".ascx", ".dll", ".asp", ".htm", ".html", ".js", ".css", ".mdb", ".config" };
+        public List<string> ChoosedTypes = new List<string>() { ".wps", ".doc", ".docx", ".xls", ".xlsx", ".psd", ".jpg", ".png", ".txt", ".aspx", ".ascx", ".dll", ".asp", ".php", ".htm", ".html", ".js", ".css", ".mdb", ".config" };
         /// <summary>
         /// 排除法，文件类型
         /// </summary>
-        public List<string> ExcludeTypes = new List<string>() { ".user", ".scc", ".suo", ".vssscc", ".vspscc", ".pdb", ".refresh", ".ldf", ".lock" };
+        public List<string> ExcludeTypes = new List<string>() { ".tmp", ".bak", ".cache", ".log", ".user", ".scc", ".suo", ".vssscc", ".vspscc", ".pdb", ".refresh", ".ldf", ".lock" };
 
         /// <summary>
         /// IMK: 检查文件类型是否需备份
@@ -178,8 +219,16 @@ namespace WinFileHistory
         public string ConfigPath;
         public string StorePath;
 
-        public string GetConfigPath() { return string.Format("{0}FileHistory/{1}", Drive, ConfigPath); }
-        public string GetStorePath() { return string.Format("{0}FileHistory/{1}", Drive, StorePath); }
+        /// <summary>
+        /// 获取 配置文件夹 以 / 结束
+        /// </summary>
+        /// <returns></returns>
+        public string GetConfigPath() { return string.Format("{0}FileHistory/{1}/", Drive, ConfigPath); }
+        /// <summary>
+        /// 获取 数据文件夹 以 / 结束
+        /// </summary>
+        /// <returns></returns>
+        public string GetStorePath() { return string.Format("{0}FileHistory/{1}/", Drive, StorePath); }
 
         public string GetTargetFolder(string source)
         {
@@ -188,8 +237,12 @@ namespace WinFileHistory
 
         public long GetTotalSize()
         {
-            var allFiles = new System.IO.DirectoryInfo(GetStorePath()).EnumerateFiles("*.*", System.IO.SearchOption.AllDirectories);
-            return allFiles.Sum(f => f.Length);
+            if (System.IO.Directory.Exists(GetStorePath()))
+            {
+                var allFiles = new System.IO.DirectoryInfo(GetStorePath()).EnumerateFiles("*.*", System.IO.SearchOption.AllDirectories);
+                return allFiles.Sum(f => f.Length);
+            }
+            return 0;
         }
         public void GetTotalSizeAsync(Action<long> action)
         {
@@ -207,6 +260,8 @@ namespace WinFileHistory
             return m_catalog;
         }
 
+        internal void RefreshCatelog() { m_catalog = ClsCatalog.LoadFrom(CatelogFile);  }
+
         public TargetConfig() { }
         public TargetConfig(System.IO.DriveInfo drive)
         {
@@ -220,7 +275,7 @@ namespace WinFileHistory
 
             ConfigPath = string.Format("{0}/{1}/{2}", _UserName, _PCName, "Configuration"); 
             StorePath = string.Format("{0}/{1}/{2}", _UserName, _PCName, "Data");
-            CatelogFile = string.Format("{0}/{1}", GetConfigPath(), "catelog.db");
+            CatelogFile = System.IO.Path.Combine(GetConfigPath(), "catelog.jdb"); //| catelog.db -> catelog.jdb
 
         }
     }

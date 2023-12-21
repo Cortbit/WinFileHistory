@@ -9,17 +9,18 @@ namespace WinFileHistory
     public class ClsCatalog
     {
         private const string CatelogVersion = "1.0.0";
-        private static string getDefaultFile() { return System.IO.Path.Combine(System.Environment.CurrentDirectory, "catelog.db"); }
+        private static string getDefaultFile() { return System.IO.Path.Combine(System.Environment.CurrentDirectory, "catelog.jdb"); }
         private string file;
 
         public string CVer = CatelogVersion;
-        public DateTime? lastDoneTime;
-        public DateTime? nextTaskTime;
+        public DateTime? lastDoneUtcTime;
+        public DateTime? lastCleanUtcTime;
+        public DateTime? nextTaskUtcTime;
         public Dictionary<string, Dictionary<string, DiffFlag>> catelogs = new Dictionary<string, Dictionary<string, DiffFlag>>();
         /// <summary>
         /// 任务执行记录
         /// </summary>
-        public Dictionary<DateTime, string[]> listTimeTasks = new Dictionary<DateTime, string[]>();
+        public Dictionary<string, string[]> listTimeTasks = new Dictionary<string, string[]>();
 
         public ClsCatalog() { }
 
@@ -30,15 +31,15 @@ namespace WinFileHistory
 
         public void save()
         {
-            string _file = this.file;
-            if (string.IsNullOrWhiteSpace(_file))
+            lock (CatelogVersion)
             {
-                _file = getDefaultFile();
+                string _file = this.file;
+
+                if (string.IsNullOrWhiteSpace(_file)) { _file = getDefaultFile(); }
+                //|this.SaveObject(_file);
+                //|this.SaveJDB(System.IO.Path.ChangeExtension(_file, ".jdb"));
+                this.SaveJDB(_file);
             }
-            this.SaveObject(_file);
-            //string jstr = JsonHelper.ToJson(this);
-            //jstr = jstr.Replace("],\"", "],\r\n\"").Replace("},{\"", "},\r\n{\"");
-            //System.IO.File.WriteAllText(_file, jstr);
         }
 
         public static ClsCatalog LoadFrom(string catelog_file)
@@ -50,15 +51,16 @@ namespace WinFileHistory
                 //string jstr = System.IO.File.ReadAllText(_file);
                 try
                 {
-                    jobj = _file.ReadObject<ClsCatalog>();
-                    //jobj = JsonHelper.ToObject<ClsCatalog>(jstr);
+                    //jobj = _file.ReadObject<ClsCatalog>(); //old .db file
+                    //try { jobj.SaveJDB(System.IO.Path.ChangeExtension(_file, ".jdb")); } catch { }
+                    jobj = _file.ReadJDB<ClsCatalog>();
                     if (jobj == null) { jobj = new ClsCatalog(_file); }
                     if (jobj.CVer != CatelogVersion)
                     {
                         jobj.CVer = CatelogVersion;
                         jobj.save();
                     }
-                    if (jobj.listTimeTasks == null) { jobj.listTimeTasks = new Dictionary<DateTime, string[]>(); }
+                    if (jobj.listTimeTasks == null) { jobj.listTimeTasks = new Dictionary<string, string[]>(); }
                     jobj.file = _file;
                     return jobj;
                 }

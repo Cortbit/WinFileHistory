@@ -12,6 +12,23 @@ namespace WinFileHistory
             return (length / 1024 / 1024 / 1024F).ToString("F"+digits) + " GB";
         }
 
+        public static string ToXB(this long length, int digits = 0)
+        {
+            if (length > 0x40000000) //|G
+            {
+                return (length / 1024 / 1024 / 1024F).ToString("F" + digits) + " GB";
+            }
+            else if (length > 0x100000) //|M
+            {
+                return (length / 1024 / 1024F).ToString("F" + digits) + " MB";
+            }
+            else if (length > 0x400) //|K
+            {
+                return (length / 1024F).ToString("F" + digits) + " KB";
+            }
+            else { return length + "B"; }
+        }
+
         public static bool IsExclude(this List<string> excludes, string path)
         {
             foreach (string exc in excludes)

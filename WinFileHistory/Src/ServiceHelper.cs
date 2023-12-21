@@ -70,5 +70,35 @@ namespace IMKCode
                 installer.Uninstall(null);
             }
         }
+
+        public static bool AddFileMenu(string text, string par)
+        {
+            string _key = System.Windows.Forms.Application.ProductName;
+            try
+            {
+                using (RegistryKey _cmnu = Microsoft.Win32.Registry.ClassesRoot.OpenSubKey("*").OpenSubKey("shell", true).CreateSubKey(_key))
+                {
+                    _cmnu.SetValue(null, text);
+                    using (RegistryKey _cmd = _cmnu.CreateSubKey("command"))
+                    {
+                        _cmd.SetValue(null, System.Windows.Forms.Application.ExecutablePath + " " + par + " \"%1\"");
+                        return true;
+                    }
+                }
+            }
+            catch { return false; }
+        }
+
+        public static bool RemoveFileMenu()
+        {
+            string _key = System.Windows.Forms.Application.ProductName;
+            try
+            {
+                Microsoft.Win32.Registry.ClassesRoot.OpenSubKey("*").OpenSubKey("shell", true).DeleteSubKeyTree(_key, false);
+                return true;
+            }
+            catch { return false; }
+        }
+
     }
 }

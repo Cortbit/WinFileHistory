@@ -5,6 +5,7 @@ using System.Text;
 using System.IO;
 using System.IO.Pipes;
 using System.Security.Principal;
+using System.Collections.Concurrent;
 
 namespace WinFileHistory
 {
@@ -62,31 +63,15 @@ namespace WinFileHistory
         {
             while (m_runing)
             {
-                if (cfg != null && catalog != null && (catalog.nextTaskTime == null || catalog.nextTaskTime.Value < DateTime.Now))
+                if (cfg != null && catalog != null && (catalog.nextTaskUtcTime == null || catalog.nextTaskUtcTime.Value < DateTime.UtcNow))
                 {
-                    catalog.nextTaskTime = DateTime.Now.AddMinutes((int)cfg.DPFrequency);
+                    catalog.nextTaskUtcTime = DateTime.UtcNow.AddMinutes((int)cfg.DPFrequency);
                     m_working = true;
                     try
                     {
-                        writeLog("= work task start =");
-                        if (OnAllTaskStart != null) { OnAllTaskStart(this, cfg); }
-                        this.addSendTask(SC_CMD_SYNC_WORK_STARTING);
-                        BackupResult result = BackupAll();
-                        if (OnAllTaskCompleted != null) { OnAllTaskCompleted(this, result); }
-                        this.addSendTask(SC_CMD_SYNC_WORK_COMPLETED);
-                        if (result.Status < 0) { writeLog("IMK: " + result.Msg); }
-                        writeLog("= work task completed =");
-
+                        this.DoBackupAll();
 
                         //////////////////////////////////////////////////////////////////////////////////////////////
-
-                        try
-                        {
-                            writeLog("= work clean start =");
-                            CleanExpired();
-                            writeLog("= work clean completed =");
-                        }
-                        catch { } //| 清理过期文件
 
                     }
                     catch(Exception err)
@@ -95,6 +80,21 @@ namespace WinFileHistory
                     }
                     finally
                     {
+                        try
+                        {
+                            if (cfg.Retention != EnFileKeepTimes.Never)
+                            {
+                                if (catalog.lastCleanUtcTime == null || catalog.lastCleanUtcTime.Value.AddDays(1) < DateTime.UtcNow)
+                                {
+                                    catalog.lastCleanUtcTime = DateTime.UtcNow;
+
+                                    this.DoCleanExpired((int)cfg.Retention);
+
+                                }
+                            }
+                        }
+                        catch { } //| 清理过期文件
+
                         m_working = false;
                     }
 
@@ -201,6 +201,11 @@ namespace WinFileHistory
                         manualStart();
                         break;
                     }
+                //case SC_CMD_MANUAL_CLEAN:
+                //    {
+                //        manualClean();
+                //        break;
+                //    }
                 case "test":
                     {
                         addSendTask("Hello, Welcome! -- IMKCode.MARK @ YBZL");
@@ -242,17 +247,9 @@ namespace WinFileHistory
             {
                 if (cfg != null && catalog != null)
                 {
-                    catalog.nextTaskTime = DateTime.Now.AddMinutes((int)cfg.DPFrequency);
+                    catalog.nextTaskUtcTime = DateTime.UtcNow.AddMinutes((int)cfg.DPFrequency);
                     m_working = true;
-                    try
-                    {
-                        if (OnAllTaskStart != null) { OnAllTaskStart(this, cfg); }
-                        this.addSendTask(SC_CMD_SYNC_WORK_STARTING);
-                        BackupResult result = BackupAll();
-                        if (OnAllTaskCompleted != null) { OnAllTaskCompleted(this, result); }
-                        this.addSendTask(SC_CMD_SYNC_WORK_COMPLETED);
-                        if (result.Status < 0){ writeLog("IMK: " + result.Msg); }
-                    }
+                    try { this.DoBackupAll(); }
                     finally { m_working = false; }
                 }
             }
@@ -261,15 +258,16 @@ namespace WinFileHistory
         /// <summary>
         /// IMK: 手动清理
         /// </summary>
-        public void manualClean()
+        public void manualClean(int keep_months)
         {
-            if (m_log) { writeLog("- manual clean -"); }
+            if (m_log) { writeLog($"- manual clean[{keep_months}] -"); }
             if (!this.m_working)
             {
                 m_working = true;
                 try
                 {
-                    CleanExpired();
+                    catalog.lastCleanUtcTime = DateTime.UtcNow;
+                    DoCleanExpired(keep_months);
                 }
                 finally
                 {
@@ -278,7 +276,24 @@ namespace WinFileHistory
             }
         }
 
-        protected BackupResult BackupAll()
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        /// <summary>
+        /// 执行备份任务
+        /// </summary>
+        protected void DoBackupAll()
+        {
+            writeLog("= work task start =");
+            if (OnAllTaskStart != null) { OnAllTaskStart(this, cfg); }
+            this.addSendTask(SC_CMD_SYNC_WORK_STARTING);
+            BackupResult result = this.innerBackupAll();
+            if (OnAllTaskCompleted != null) { OnAllTaskCompleted(this, result); }
+            this.addSendTask(SC_CMD_SYNC_WORK_COMPLETED);
+            if (result.Status < 0) { writeLog("IMK: " + result.Msg); }
+            writeLog("= work task completed =");
+        }
+
+        private BackupResult innerBackupAll()
         {
             BackupResult result = new BackupResult();
             Dictionary<string, DiffFlag> _group;
@@ -320,19 +335,83 @@ namespace WinFileHistory
             }
             finally
             {
-                catalog.lastDoneTime = DateTime.Now;
-                catalog.nextTaskTime = DateTime.Now.AddMinutes((int)cfg.DPFrequency);
-                if (catalog.listTimeTasks == null) { catalog.listTimeTasks = new Dictionary<DateTime, string[]>(); }
-                catalog.listTimeTasks.Add(DateTime.Now, sourceFolders);
+                catalog.lastDoneUtcTime = DateTime.UtcNow;
+                catalog.nextTaskUtcTime = DateTime.UtcNow.AddMinutes((int)cfg.DPFrequency);
+                if (catalog.listTimeTasks == null) { catalog.listTimeTasks = new Dictionary<string, string[]>(); }
+                catalog.listTimeTasks.Add(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), sourceFolders);
                 catalog.save();
             }
         }
 
-        protected void CleanExpired()
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        
+
+        /// <summary>
+        /// 执行清理任务
+        /// </summary>
+        /// <param name="keep_months"></param>
+        protected void DoCleanExpired(int keep_months)
         {
-            //TODO: 清理过期文件(未开发)
+            writeLog("= work clean start =");
+            this.innerCleanExpired(keep_months);
+            writeLog("= work clean completed =");
         }
 
+        private void innerCleanExpired(int keep_months)
+        {
+            DateTime? _expireUtcTime;
+            if (keep_months == -1) { return; }  //| 永久保留?
+            else if (keep_months == 0) { _expireUtcTime = null; } //| 空间不足，删除最远的一次备份(最近的一个除外)
+            else if (keep_months <= -2) { _expireUtcTime = DateTime.MinValue; } //| 全部清理(最近的一个除外)
+            else { _expireUtcTime = DateTime.UtcNow.AddMonths(0 - keep_months); } 
+
+            //TODO: 清理过期文件
+            string storeFolder = cfg.Target.GetStorePath();
+            var allFiles = new System.IO.DirectoryInfo(storeFolder).EnumerateFiles("*.*", System.IO.SearchOption.AllDirectories);
+            //ConcurrentDictionary<string, List<FileInfo>> dcFVers = new ConcurrentDictionary<string, List<FileInfo>>(StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, List<FileInfo>> dcFVers = new Dictionary<string, List<FileInfo>>(StringComparer.OrdinalIgnoreCase);
+            System.Text.RegularExpressions.Regex rxOrgName = new System.Text.RegularExpressions.Regex(@"(.*)(\s+\(\d{4}_\d{2}_\d{2}\s+\d{2}_\d{2}_\d{2}\s+UTC\))(\.?[^$]*)"); //| "test (2019_10_10 08_28_02 UTC).html" => "test.html"
+
+            //var tr = System.Threading.Tasks.Parallel.ForEach(allFiles, (fi) =>
+            foreach(var fi in allFiles)
+            {
+                string _key;
+                List<FileInfo> _fis;
+                System.Text.RegularExpressions.Match mt = rxOrgName.Match(fi.FullName);
+                if (mt.Success && mt.Groups.Count == 4)
+                {
+                    _key = mt.Groups[1].Value + mt.Groups[3].Value;
+                    if (!dcFVers.TryGetValue(_key, out _fis))
+                    {
+                        _fis = new List<FileInfo>();
+                        //if (!dcFVers.TryAdd(_key, _fis)){Console.WriteLine("ADD Failed " + _key);}
+                        dcFVers.Add(_key, _fis);
+                    }
+                    _fis.Add(fi);
+                }
+            }
+            //);while (!tr.IsCompleted) { System.Threading.Thread.Sleep(0); }
+
+            foreach (var kv in dcFVers)
+            {
+                if (kv.Value.Count > 1)
+                {
+                    FileInfo[] _arr = kv.Value.OrderBy(n => n.CreationTimeUtc).ToArray(); //| 按备份时间(创建)排序
+                    int _cntEnd = _arr.Length -1; //| skip last file
+                    for (int i=0; i < _cntEnd; i++)
+                    {
+                        if (_expireUtcTime == null) { try { _arr[i].Delete(); } catch { } break; } //| 空间不足删除最远一次备份
+                        else if (_expireUtcTime.Value > _arr[i].CreationTimeUtc){try { _arr[i].Delete(); } catch { } } //| 删除所有过期文件
+                    }
+                }
+            }
+        }
+
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        /// <summary>
+        /// 结束服务
+        /// </summary>
         public void Stop()
         {
             m_runing = false;
@@ -346,13 +425,6 @@ namespace WinFileHistory
             }
         }
 
-        public void Dispose()
-        {
-            this.Stop();
-            catalog = null;
-        }
-
-
         protected void writeLog(string msg)
         {
             try
@@ -361,5 +433,12 @@ namespace WinFileHistory
             }
             catch { }
         }
+
+        public void Dispose()
+        {
+            this.Stop();
+            catalog = null;
+        }
+
     }
 }

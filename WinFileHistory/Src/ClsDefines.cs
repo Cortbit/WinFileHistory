@@ -102,6 +102,30 @@ namespace WinFileHistory
         Never = -1,
     }
 
+
+    /// <summary>
+    /// IMK: 历史文件清理时长(月)
+    /// </summary>
+    public enum EnFileCleanTimes : int
+    {
+        [Description("全部(最近的一个除外)")]
+        AllSpace = -2,
+        [Description("最久远的一个")]
+        FirstOne = 0,
+        [Description("早于 1 个月")]
+        Monthes_1 = 1,
+        [Description("早于 3 个月")]
+        Monthes_3 = 3,
+        [Description("早于 6 个月")]
+        Monthes_6 = 6,
+        [Description("早于 9 个月")]
+        Monthes_9 = 9,
+        [Description("早于 1 年(默认)")]
+        Years_1 = 12,
+        [Description("早于 2 年")]
+        Years_2 = 24,
+    }
+
     public enum EnChangeType
     {
         None,
@@ -117,6 +141,7 @@ namespace WinFileHistory
     [Serializable]
     public class DiffFlag
     {
+        [NonSerialized]
         public string relativePath;
         public EnChangeType Change;
         public long length;
@@ -199,6 +224,18 @@ namespace WinFileHistory
             EnFileKeepTimes.Years_1,
             EnFileKeepTimes.Years_2,
             EnFileKeepTimes.Never,
+        };
+
+        public static readonly EnumItem<EnFileCleanTimes>[] SC_FileCleanTimes = new EnumItem<EnFileCleanTimes>[]
+        {
+            EnFileCleanTimes.AllSpace,
+            EnFileCleanTimes.FirstOne,
+            EnFileCleanTimes.Monthes_1,
+            EnFileCleanTimes.Monthes_3,
+            EnFileCleanTimes.Monthes_6,
+            EnFileCleanTimes.Monthes_9,
+            EnFileCleanTimes.Years_1,
+            EnFileCleanTimes.Years_2,
         };
 
     }
